@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+.env
+
+# ML Models (large binary files — regenerate with train_model.py)
+backend/ml/models/*.pkl
+backend/ml/notebooks/*.png
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.db
+postgres_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/

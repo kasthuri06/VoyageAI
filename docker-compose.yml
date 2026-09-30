@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: voyageai_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: voyageai
+      POSTGRES_PASSWORD: voyageai123
+      POSTGRES_DB: voyageai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voyageai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend (FastAPI) ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: voyageai_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://voyageai:voyageai123@db:5432/voyageai
+      SECRET_KEY: voyage-ai-super-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+      ROUTING_MODE: algorithm
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://localhost"
+      APP_ENV: development
+      # Add your real keys below (all optional for local testing)
+      OPENWEATHER_API_KEY: ""
+      GOOGLE_MAPS_API_KEY: ""
+      OPENROUTESERVICE_API_KEY: ""
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python ml/train_model.py &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ── Frontend (Vite dev server) ──────────────────────────────────
+  frontend:
+    image: node:22-alpine
+    container_name: voyageai_frontend
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
